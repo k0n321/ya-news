@@ -1,12 +1,13 @@
 from datetime import datetime, timedelta
 
 import pytest
+
 from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 
-from news.models import News
 from news.forms import CommentForm
+from news.models import News
 
 
 @pytest.mark.django_db
@@ -30,7 +31,11 @@ def test_home_contains_no_more_than_ten_news(client):
 def test_home_news_sorted_newest_first(client):
     today = datetime.today()
     News.objects.bulk_create([
-        News(title=f'Новость {i}', text='Текст', date=today - timedelta(days=i))
+        News(
+            title=f'Новость {i}',
+            text='Текст',
+            date=today - timedelta(days=i),
+        )
         for i in range(12)
     ])
     url = reverse('news:home')
@@ -48,7 +53,11 @@ def test_detail_comments_sorted_oldest_first(client, django_user_model):
     now = timezone.now()
     from news.models import Comment
     for i in range(10):
-        comment = Comment.objects.create(news=news, author=author, text=f'Текст {i}')
+        comment = Comment.objects.create(
+            news=news,
+            author=author,
+            text=f'Текст {i}',
+        )
         comment.created = now + timedelta(minutes=i)
         comment.save()
     response = client.get(detail_url)
