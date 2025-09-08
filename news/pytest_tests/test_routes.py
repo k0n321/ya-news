@@ -1,6 +1,7 @@
 from http import HTTPStatus
 import pytest
 from django.urls import reverse
+from pytest_django.asserts import assertTemplateUsed
 
 
 @pytest.mark.parametrize(
@@ -8,6 +9,8 @@ from django.urls import reverse
     (
         ('news:home', False),
         ('news:detail', True),
+        ('users:login', False),
+        ('users:signup', False),
     ),
 )
 @pytest.mark.django_db
@@ -32,12 +35,12 @@ def test_comment_edit_delete_pages_available_for_author(author_client, comment, 
 
 @pytest.mark.parametrize('name', ('news:delete', 'news:edit'))
 @pytest.mark.django_db
-def test_anonymous_redirected_to_login_on_comment_pages(client, comment, name):
-    login_url = reverse('users:login')
+def test_anonymous_sees_login_when_accessing_comment_pages(client, comment, name):
     target_url = reverse(name, kwargs={'pk': comment.pk})
-    response = client.get(target_url)
-    assert response.status_code == HTTPStatus.FOUND
-    assert response.url == f'{login_url}?next={target_url}'
+    response = client.get(target_url, follow=True)
+    # Проверяем доступность конечной страницы (страница логина), а не редирект.
+    assert response.status_code == HTTPStatus.OK
+    assertTemplateUsed(response, 'registration/login.html')
 
 
 @pytest.mark.parametrize('name', ('news:delete', 'news:edit'))
@@ -46,3 +49,10 @@ def test_auth_user_cannot_access_others_comment_pages(not_author_client, comment
     url = reverse(name, kwargs={'pk': comment.pk})
     response = not_author_client.get(url)
     assert response.status_code == HTTPStatus.NOT_FOUND
+
+
+@pytest.mark.django_db
+def test_logout_page_available_for_anonymous_user(client):
+    url = reverse('users:logout')
+    response = client.get(url)
+    assert response.status_code == HTTPStatus.OK
