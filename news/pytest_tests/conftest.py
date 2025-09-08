@@ -1,6 +1,7 @@
 import pytest
 
 from django.test.client import Client
+from django.urls import reverse
 
 from news.models import Comment, News
 
@@ -41,3 +42,13 @@ def comment(author, news):
         author=author,
         text='Текст комментария',
     )
+
+
+@pytest.fixture
+def detail_url(news):
+    return reverse('news:detail', kwargs={'pk': news.pk})
+
+
+@pytest.fixture
+def comment_detail_anchor_url(comment):
+    return reverse('news:detail', kwargs={'pk': comment.news.pk}) + '#comments'
