@@ -5,6 +5,8 @@ from pytest_django.asserts import assertTemplateUsed
 
 from django.urls import reverse
 
+# Mark entire module as requiring the database
+pytestmark = pytest.mark.django_db
 
 @pytest.mark.parametrize(
     'url_name, needs_news',
@@ -15,7 +17,6 @@ from django.urls import reverse
         ('users:signup', False),
     ),
 )
-@pytest.mark.django_db
 def test_pages_availability_for_anonymous_user(client, url_name, needs_news):
     if needs_news:
         from news.models import News
@@ -28,7 +29,6 @@ def test_pages_availability_for_anonymous_user(client, url_name, needs_news):
 
 
 @pytest.mark.parametrize('name', ('news:delete', 'news:edit'))
-@pytest.mark.django_db
 def test_comment_edit_delete_pages_available_for_author(
     author_client, comment, name,
 ):
@@ -38,7 +38,6 @@ def test_comment_edit_delete_pages_available_for_author(
 
 
 @pytest.mark.parametrize('name', ('news:delete', 'news:edit'))
-@pytest.mark.django_db
 def test_anonymous_sees_login_when_accessing_comment_pages(
     client, comment, name,
 ):
@@ -49,7 +48,6 @@ def test_anonymous_sees_login_when_accessing_comment_pages(
 
 
 @pytest.mark.parametrize('name', ('news:delete', 'news:edit'))
-@pytest.mark.django_db
 def test_auth_user_cannot_access_others_comment_pages(
     not_author_client, comment, name,
 ):
@@ -58,8 +56,6 @@ def test_auth_user_cannot_access_others_comment_pages(
     assert response.status_code == HTTPStatus.NOT_FOUND
 
 
-@pytest.mark.django_db
-def test_logout_page_available_for_anonymous_user(client):
-    url = reverse('users:logout')
-    response = client.get(url)
+def test_logout_page_available_for_anonymous_user(client, logout_url):
+    response = client.post(logout_url)
     assert response.status_code == HTTPStatus.OK

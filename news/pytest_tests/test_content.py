@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from news.forms import CommentForm
-from news.models import News
+from news.models import News, Comment
 
 # Mark entire module as requiring the database
 pytestmark = pytest.mark.django_db
@@ -30,7 +30,6 @@ def test_home_news_sorted_newest_first(client, make_news_list, home_url):
 def test_detail_comments_sorted_oldest_first(client, author, news, make_detail_url):
     detail_url = make_detail_url()
     now = timezone.now()
-    from news.models import Comment
     for i in range(10):
         comment = Comment.objects.create(
             news=news,

@@ -44,10 +44,47 @@ def comment(author, news):
 
 
 @pytest.fixture
-def detail_url(news):
-    return reverse('news:detail', kwargs={'pk': news.pk})
+def home_url():
+    return reverse('news:home')
 
 
 @pytest.fixture
-def comment_detail_anchor_url(comment):
-    return reverse('news:detail', kwargs={'pk': comment.news.pk}) + '#comments'
+def login_url():
+    return reverse('users:login')
+
+
+@pytest.fixture
+def signup_url():
+    return reverse('users:signup')
+
+
+@pytest.fixture
+def logout_url():
+    return reverse('users:logout')
+
+
+@pytest.fixture
+def make_news_list():
+    def _make(count: int, start_date=None, text: str = 'Текст'):
+        from datetime import datetime, timedelta
+        if start_date is None:
+            start_date = datetime.today()
+        News.objects.bulk_create(
+            (
+                News(
+                    title=f'Новость {i}',
+                    text=text,
+                    date=start_date - timedelta(days=i),
+                )
+                for i in range(count)
+            )
+        )
+    return _make
+
+
+@pytest.fixture
+def make_detail_url(news):
+    def _make(anchor: bool = False) -> str:
+        url = reverse('news:detail', kwargs={'pk': news.pk})
+        return url + '#comments' if anchor else url
+    return _make

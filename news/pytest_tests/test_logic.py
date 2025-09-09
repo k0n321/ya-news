@@ -8,9 +8,11 @@ from django.urls import reverse
 from news.forms import WARNING
 from news.models import Comment
 
+# Mark entire module as requiring the database
+pytestmark = pytest.mark.django_db
 
-@pytest.mark.django_db
-def test_anonymous_cannot_post_comment(client, detail_url):
+def test_anonymous_cannot_post_comment(client, make_detail_url):
+    detail_url = make_detail_url()
     comments_before = Comment.objects.count()
     response = client.post(
         detail_url,
@@ -22,15 +24,15 @@ def test_anonymous_cannot_post_comment(client, detail_url):
     assert Comment.objects.count() == comments_before
 
 
-@pytest.mark.django_db
 def test_authorized_user_can_post_comment(
-    author_client, author, news, detail_url,
+    author_client, author, news, make_detail_url,
 ):
+    detail_url = make_detail_url()
     comments_before = Comment.objects.count()
     data = {'text': 'Новый комментарий'}
     response = author_client.post(detail_url, data=data)
     assert response.status_code == HTTPStatus.FOUND
-    assertRedirects(response, detail_url + '#comments')
+    assertRedirects(response, make_detail_url(anchor=True))
     assert Comment.objects.count() == comments_before + 1
     created = Comment.objects.get(news=news, author=author, text=data['text'])
     assert created.news == news
@@ -38,8 +40,8 @@ def test_authorized_user_can_post_comment(
     assert created.text == data['text']
 
 
-@pytest.mark.django_db
-def test_comment_with_bad_words_not_published(author_client, detail_url):
+def test_comment_with_bad_words_not_published(author_client, make_detail_url):
+    detail_url = make_detail_url()
     comments_before = Comment.objects.count()
     data = {'text': 'Какой негодяй!'}
     response = author_client.post(detail_url, data=data)
@@ -52,33 +54,30 @@ def test_comment_with_bad_words_not_published(author_client, detail_url):
     assert Comment.objects.count() == comments_before
 
 
-@pytest.mark.django_db
 def test_author_can_edit_own_comment(
-    author_client, comment, comment_detail_anchor_url,
+    author_client, comment, make_detail_url,
 ):
     url = reverse('news:edit', kwargs={'pk': comment.pk})
     new_text = 'Обновлённый текст'
     response = author_client.post(url, data={'text': new_text})
     assert response.status_code == HTTPStatus.FOUND
-    assertRedirects(response, comment_detail_anchor_url)
+    assertRedirects(response, make_detail_url(anchor=True))
     comment.refresh_from_db()
     assert comment.text == new_text
 
 
-@pytest.mark.django_db
 def test_author_can_delete_own_comment(
-    author_client, comment, comment_detail_anchor_url,
+    author_client, comment, make_detail_url,
 ):
     url = reverse('news:delete', kwargs={'pk': comment.pk})
     comments_before = Comment.objects.count()
     response = author_client.post(url)
     assert response.status_code == HTTPStatus.FOUND
-    assertRedirects(response, comment_detail_anchor_url)
+    assertRedirects(response, make_detail_url(anchor=True))
     assert Comment.objects.count() == comments_before - 1
     assert not Comment.objects.filter(pk=comment.pk).exists()
 
 
-@pytest.mark.django_db
 def test_auth_user_cannot_edit_others_comment(not_author_client, comment):
     url = reverse('news:edit', kwargs={'pk': comment.pk})
     old_text = comment.text
@@ -91,7 +90,6 @@ def test_auth_user_cannot_edit_others_comment(not_author_client, comment):
     assert comment.text == old_text
 
 
-@pytest.mark.django_db
 def test_auth_user_cannot_delete_others_comment(not_author_client, comment):
     url = reverse('news:delete', kwargs={'pk': comment.pk})
     comments_before = Comment.objects.count()
