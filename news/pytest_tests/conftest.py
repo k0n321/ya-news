@@ -64,6 +64,21 @@ def logout_url():
 
 
 @pytest.fixture
+def detail_url(news):
+    return reverse('news:detail', kwargs={'pk': news.pk})
+
+
+@pytest.fixture
+def comment_edit_url(comment):
+    return reverse('news:edit', kwargs={'pk': comment.pk})
+
+
+@pytest.fixture
+def comment_delete_url(comment):
+    return reverse('news:delete', kwargs={'pk': comment.pk})
+
+
+@pytest.fixture
 def make_news_list():
     def _make(count: int, start_date=None, text: str = 'Текст'):
         from datetime import datetime, timedelta

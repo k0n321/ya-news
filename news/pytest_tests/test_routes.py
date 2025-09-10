@@ -1,61 +1,51 @@
 from http import HTTPStatus
 
 import pytest
-from pytest_django.asserts import assertTemplateUsed
+from pytest_django.asserts import assertTemplateUsed, assertRedirects
 
-from django.urls import reverse
-
-# Mark entire module as requiring the database
 pytestmark = pytest.mark.django_db
 
+
 @pytest.mark.parametrize(
-    'url_name, needs_news',
+    'url_fixture, client_fixture, status',
     (
-        ('news:home', False),
-        ('news:detail', True),
-        ('users:login', False),
-        ('users:signup', False),
+        # Public pages for anonymous user (GET)
+        ('home_url', 'client', HTTPStatus.OK),
+        ('detail_url', 'client', HTTPStatus.OK),
+        ('login_url', 'client', HTTPStatus.OK),
+        ('signup_url', 'client', HTTPStatus.OK),
+        # Comment pages access control (GET)
+        ('comment_edit_url', 'author_client', HTTPStatus.OK),
+        ('comment_delete_url', 'author_client', HTTPStatus.OK),
+        ('comment_edit_url', 'not_author_client', HTTPStatus.NOT_FOUND),
+        ('comment_delete_url', 'not_author_client', HTTPStatus.NOT_FOUND),
     ),
 )
-def test_pages_availability_for_anonymous_user(client, url_name, needs_news):
-    if needs_news:
-        from news.models import News
-        news = News.objects.create(title='Test title', text='Test text')
-        url = reverse(url_name, kwargs={'pk': news.pk})
-    else:
-        url = reverse(url_name)
+def test_get_statuses(request, url_fixture, client_fixture, status):
+    url = request.getfixturevalue(url_fixture)
+    client = request.getfixturevalue(client_fixture)
     response = client.get(url)
-    assert response.status_code == HTTPStatus.OK
+    assert response.status_code == status
 
 
-@pytest.mark.parametrize('name', ('news:delete', 'news:edit'))
-def test_comment_edit_delete_pages_available_for_author(
-    author_client, comment, name,
+@pytest.mark.parametrize('url_fixture', ('comment_delete_url', 'comment_edit_url'))
+def test_anonymous_redirects_to_login_on_comment_pages(
+    client, request, url_fixture, login_url,
 ):
-    url = reverse(name, kwargs={'pk': comment.pk})
-    response = author_client.get(url)
-    assert response.status_code == HTTPStatus.OK
+    target_url = request.getfixturevalue(url_fixture)
+    response = client.get(target_url)
+    assert response.status_code == HTTPStatus.FOUND
+    assertRedirects(response, f'{login_url}?next={target_url}')
 
 
-@pytest.mark.parametrize('name', ('news:delete', 'news:edit'))
-def test_anonymous_sees_login_when_accessing_comment_pages(
-    client, comment, name,
-):
-    target_url = reverse(name, kwargs={'pk': comment.pk})
-    response = client.get(target_url, follow=True)
-    assert response.status_code == HTTPStatus.OK
-    assertTemplateUsed(response, 'registration/login.html')
-
-
-@pytest.mark.parametrize('name', ('news:delete', 'news:edit'))
-def test_auth_user_cannot_access_others_comment_pages(
-    not_author_client, comment, name,
-):
-    url = reverse(name, kwargs={'pk': comment.pk})
-    response = not_author_client.get(url)
-    assert response.status_code == HTTPStatus.NOT_FOUND
-
-
-def test_logout_page_available_for_anonymous_user(client, logout_url):
-    response = client.post(logout_url)
-    assert response.status_code == HTTPStatus.OK
+@pytest.mark.parametrize(
+    'url_fixture, client_fixture, status',
+    (
+        ('logout_url', 'client', HTTPStatus.OK),
+    ),
+)
+def test_post_statuses(request, url_fixture, client_fixture, status):
+    url = request.getfixturevalue(url_fixture)
+    client = request.getfixturevalue(client_fixture)
+    response = client.post(url)
+    assert response.status_code == status

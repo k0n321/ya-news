@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import pytest
 from django.conf import settings
@@ -8,7 +8,6 @@ from django.utils import timezone
 from news.forms import CommentForm
 from news.models import News, Comment
 
-# Mark entire module as requiring the database
 pytestmark = pytest.mark.django_db
 
 
@@ -27,7 +26,9 @@ def test_home_news_sorted_newest_first(client, make_news_list, home_url):
     assert dates == sorted(dates, reverse=True)
 
 
-def test_detail_comments_sorted_oldest_first(client, author, news, make_detail_url):
+def test_detail_comments_sorted_oldest_first(
+    client, author, news, make_detail_url
+):
     detail_url = make_detail_url()
     now = timezone.now()
     for i in range(10):
