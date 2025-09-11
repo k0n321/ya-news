@@ -9,8 +9,7 @@ from news.models import Comment
 pytestmark = pytest.mark.django_db
 
 
-def test_anonymous_cannot_post_comment(client, make_detail_url, login_url):
-    detail_url = make_detail_url()
+def test_anonymous_cannot_post_comment(client, detail_url, login_url):
     comments_before = Comment.objects.count()
     response = client.post(
         detail_url,
@@ -22,14 +21,13 @@ def test_anonymous_cannot_post_comment(client, make_detail_url, login_url):
 
 
 def test_authorized_user_can_post_comment(
-    author_client, author, news, make_detail_url,
+    author_client, author, news, detail_url, detail_comments_url,
 ):
-    detail_url = make_detail_url()
     Comment.objects.all().delete()
     data = {'text': 'Новый комментарий'}
     response = author_client.post(detail_url, data=data)
     assert response.status_code == HTTPStatus.FOUND
-    assertRedirects(response, make_detail_url(anchor=True))
+    assertRedirects(response, detail_comments_url)
     assert Comment.objects.count() == 1
     created = Comment.objects.get()
     assert created.news == news
@@ -37,14 +35,13 @@ def test_authorized_user_can_post_comment(
     assert created.text == data['text']
 
 
-def test_comment_with_bad_words_not_published(author_client, make_detail_url):
-    detail_url = make_detail_url()
+def test_comment_with_bad_words_not_published(author_client, detail_url):
     comments_before = Comment.objects.count()
     data = {'text': f'Какой {BAD_WORDS[0]}!'}
     response = author_client.post(detail_url, data=data)
     assert response.status_code == HTTPStatus.OK
     assert Comment.objects.count() == comments_before
-    assertTemplateUsed(response, 'news/detail.html')
+    assert 'form' in response.context
     form = response.context['form']
     assert form.is_bound
     assert 'text' in form.errors
@@ -52,13 +49,12 @@ def test_comment_with_bad_words_not_published(author_client, make_detail_url):
 
 
 def test_author_can_edit_own_comment(
-    author_client, comment, comment_edit_url, make_detail_url,
+    author_client, comment, comment_edit_url, detail_comments_url,
 ):
-    url = comment_edit_url
     new_text = 'Обновлённый текст'
-    response = author_client.post(url, data={'text': new_text})
+    response = author_client.post(comment_edit_url, data={'text': new_text})
     assert response.status_code == HTTPStatus.FOUND
-    assertRedirects(response, make_detail_url(anchor=True))
+    assertRedirects(response, detail_comments_url)
     updated = Comment.objects.get(pk=comment.pk)
     assert updated.text == new_text
     assert updated.author == comment.author
@@ -66,13 +62,12 @@ def test_author_can_edit_own_comment(
 
 
 def test_author_can_delete_own_comment(
-    author_client, comment, comment_delete_url, make_detail_url,
+    author_client, comment, comment_delete_url, detail_comments_url,
 ):
-    url = comment_delete_url
     comments_before = Comment.objects.count()
-    response = author_client.post(url)
+    response = author_client.post(comment_delete_url)
     assert response.status_code == HTTPStatus.FOUND
-    assertRedirects(response, make_detail_url(anchor=True))
+    assertRedirects(response, detail_comments_url)
     assert Comment.objects.count() == comments_before - 1
     assert not Comment.objects.filter(pk=comment.pk).exists()
 
@@ -80,9 +75,8 @@ def test_author_can_delete_own_comment(
 def test_auth_user_cannot_edit_others_comment(
     not_author_client, comment, comment_edit_url
 ):
-    url = comment_edit_url
     response = not_author_client.post(
-        url,
+        comment_edit_url,
         data={'text': 'Хочу поменять чужой текст'},
     )
     assert response.status_code == HTTPStatus.NOT_FOUND

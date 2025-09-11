@@ -1,4 +1,7 @@
 import pytest
+from datetime import datetime, timedelta
+from django.conf import settings
+from django.utils import timezone
 from django.test.client import Client
 from django.urls import reverse
 
@@ -79,27 +82,53 @@ def comment_delete_url(comment):
 
 
 @pytest.fixture
-def make_news_list():
-    def _make(count: int, start_date=None, text: str = 'Текст'):
-        from datetime import datetime, timedelta
-        if start_date is None:
-            start_date = datetime.today()
-        News.objects.bulk_create(
-            (
-                News(
-                    title=f'Новость {i}',
-                    text=text,
-                    date=start_date - timedelta(days=i),
-                )
-                for i in range(count)
+def news_overflow():
+    start_date = datetime.today()
+    count = settings.NEWS_COUNT_ON_HOME_PAGE + 1
+    News.objects.bulk_create(
+        (
+            News(
+                title=f'Новость {i}',
+                text='Текст',
+                date=start_date - timedelta(days=i),
             )
+            for i in range(count)
         )
-    return _make
+    )
 
 
 @pytest.fixture
-def make_detail_url(news):
-    def _make(anchor: bool = False) -> str:
-        url = reverse('news:detail', kwargs={'pk': news.pk})
-        return url + '#comments' if anchor else url
-    return _make
+def news_12():
+    start_date = datetime.today()
+    count = 12
+    News.objects.bulk_create(
+        (
+            News(
+                title=f'Новость {i}',
+                text='Текст',
+                date=start_date - timedelta(days=i),
+            )
+            for i in range(count)
+        )
+    )
+
+
+@pytest.fixture
+def detail_comments_url(detail_url):
+    return detail_url + '#comments'
+
+
+@pytest.fixture
+def comments_ordered(author, news):
+    now = timezone.now()
+    comments = []
+    for i in range(10):
+        comment = Comment.objects.create(
+            news=news,
+            author=author,
+            text=f'Текст {i}',
+        )
+        comment.created = now + timedelta(minutes=i)
+        comment.save()
+        comments.append(comment)
+    return comments

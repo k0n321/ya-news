@@ -41,14 +41,6 @@ def test_anonymous_redirects_to_login_on_comment_pages(
     assertRedirects(response, f'{login_url}?next={target_url}')
 
 
-@pytest.mark.parametrize(
-    'url_fixture, client_fixture, status',
-    (
-        ('logout_url', 'client', HTTPStatus.OK),
-    ),
-)
-def test_post_statuses(request, url_fixture, client_fixture, status):
-    url = request.getfixturevalue(url_fixture)
-    client = request.getfixturevalue(client_fixture)
-    response = client.post(url)
-    assert response.status_code == status
+def test_post_logout_status(client, logout_url):
+    response = client.post(logout_url)
+    assert response.status_code == HTTPStatus.OK
