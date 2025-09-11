@@ -1,7 +1,7 @@
 from http import HTTPStatus
 
 import pytest
-from pytest_django.asserts import assertTemplateUsed, assertRedirects
+from pytest_django.asserts import assertRedirects
 
 pytestmark = pytest.mark.django_db
 
@@ -28,7 +28,10 @@ def test_get_statuses(request, url_fixture, client_fixture, status):
     assert response.status_code == status
 
 
-@pytest.mark.parametrize('url_fixture', ('comment_delete_url', 'comment_edit_url'))
+@pytest.mark.parametrize(
+    'url_fixture',
+    ('comment_delete_url', 'comment_edit_url'),
+)
 def test_anonymous_redirects_to_login_on_comment_pages(
     client, request, url_fixture, login_url,
 ):

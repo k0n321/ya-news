@@ -2,7 +2,6 @@ from http import HTTPStatus
 
 import pytest
 from pytest_django.asserts import assertRedirects, assertTemplateUsed
-from django.urls import reverse
 
 from news.forms import WARNING, BAD_WORDS
 from news.models import Comment
