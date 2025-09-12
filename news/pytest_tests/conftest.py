@@ -1,9 +1,10 @@
-import pytest
 from datetime import datetime, timedelta
+
 from django.conf import settings
-from django.utils import timezone
 from django.test.client import Client
 from django.urls import reverse
+from django.utils import timezone
+import pytest
 
 from news.models import Comment, News
 
@@ -98,22 +99,6 @@ def news_overflow():
 
 
 @pytest.fixture
-def news_12():
-    start_date = datetime.today()
-    count = 12
-    News.objects.bulk_create(
-        (
-            News(
-                title=f'Новость {i}',
-                text='Текст',
-                date=start_date - timedelta(days=i),
-            )
-            for i in range(count)
-        )
-    )
-
-
-@pytest.fixture
 def detail_comments_url(detail_url):
     return detail_url + '#comments'
 
@@ -121,7 +106,6 @@ def detail_comments_url(detail_url):
 @pytest.fixture
 def comments_ordered(author, news):
     now = timezone.now()
-    comments = []
     for i in range(10):
         comment = Comment.objects.create(
             news=news,
@@ -130,5 +114,3 @@ def comments_ordered(author, news):
         )
         comment.created = now + timedelta(minutes=i)
         comment.save()
-        comments.append(comment)
-    return comments

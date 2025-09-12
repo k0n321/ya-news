@@ -3,7 +3,7 @@ from http import HTTPStatus
 import pytest
 from pytest_django.asserts import assertRedirects
 
-from news.forms import WARNING, BAD_WORDS
+from news.forms import BAD_WORDS, WARNING
 from news.models import Comment
 
 pytestmark = pytest.mark.django_db
@@ -89,9 +89,8 @@ def test_auth_user_cannot_edit_others_comment(
 def test_auth_user_cannot_delete_others_comment(
     not_author_client, comment, comment_delete_url
 ):
-    url = comment_delete_url
     comments_before = Comment.objects.count()
-    response = not_author_client.post(url)
+    response = not_author_client.post(comment_delete_url)
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert Comment.objects.count() == comments_before
     assert Comment.objects.filter(pk=comment.pk).exists()

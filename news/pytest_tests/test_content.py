@@ -12,7 +12,7 @@ def test_home_contains_no_more_than_ten_news(client, news_overflow, home_url):
     assert object_list.count() == settings.NEWS_COUNT_ON_HOME_PAGE
 
 
-def test_home_news_sorted_newest_first(client, news_12, home_url):
+def test_home_news_sorted_newest_first(client, news_overflow, home_url):
     response = client.get(home_url)
     object_list = response.context['object_list']
     dates = [item.date for item in object_list]
